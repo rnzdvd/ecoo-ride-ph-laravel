@@ -44,11 +44,12 @@ class AuthController extends Controller
     {
         // Validate email
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email'
+            'email' => 'required|email',
+            'device_token' => 'required|string'
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'Invalid email format'], 422);
+            return response()->json(['message' => 'fill required fields [email, device_token]'], 422);
         }
 
         // Find user by email
@@ -57,6 +58,10 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json(['message' => 'email not found'], 404);
         }
+
+        // Update device_token
+        $user->device_token = $request->device_token;
+        $user->save(); // will only update changed fields
 
         // Generate JWT token
         $token = JWTAuth::fromUser($user);
