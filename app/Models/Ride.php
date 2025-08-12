@@ -20,6 +20,7 @@ class Ride extends Model
         'status',
         'last_billed_at',
         'billed_intervals',
+        'end_reason'
     ];
 
     // Dates to be cast to Carbon instances
@@ -29,7 +30,6 @@ class Ride extends Model
         'last_billed_at',
     ];
 
-    // Optional: Relationship to User
     public function user()
     {
         return $this->belongsTo(User::class);

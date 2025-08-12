@@ -4,15 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\Ride;
+use App\Models\Otp;
 use App\Models\User;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use App\Services\OtpEmailService;
+use Carbon\Carbon;
+use Exception;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
-
 
 class AuthController extends Controller
 {
@@ -49,7 +47,10 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'fill required fields [email, device_token]'], 422);
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
         }
 
         // Find user by email
@@ -71,5 +72,91 @@ class AuthController extends Controller
             'user' => $user,
             'token' => $token
         ], 200);
+    }
+
+
+    public function generateOtp(Request $request, OtpEmailService $otpEmailService)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        // Delete old OTPs for this email
+        Otp::where('email', $request->email)->delete();
+
+        // Create OTP
+        $otp = rand(100000, 999999);
+        $now = Carbon::now();
+
+        try {
+            $otpEmailService->sendOtpEmail($request->email, $otp);
+
+            // If email sent successfully, save OTP to DB
+            Otp::create([
+                'email' => $request->email,
+                'otp' => $otp,
+                'time_sent' => $now,
+                'expires_at' => $now->copy()->addMinutes(5),
+            ]);
+
+            return response()->json(['message' => 'OTP sent successfully']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to send OTP',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'OTP sent successfully',
+        ]);
+    }
+
+    public function confirmOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'otp'   => 'required|string|size:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $record = Otp::where('email', $request->email)
+            ->where('otp', $request->otp)
+            ->first();
+
+        if (!$record) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid OTP',
+            ], 400);
+        }
+
+        if (Carbon::now()->greaterThan($record->expires_at)) {
+            $record->delete();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP expired',
+            ], 400);
+        }
+
+        $record->delete();
+
+        return response()->json([
+            'success' => true,
+        ]);
     }
 }

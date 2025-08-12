@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Ride;
-
+use App\Services\PushNotificationService;
 
 class RideController extends Controller
 {
 
     public function startRide(Request $request)
     {
+        $initialCharge = 0;
         $user = $request->user();
 
         if (!$request->has('scooter_id')) {
@@ -26,7 +27,13 @@ class RideController extends Controller
             ], 422);
         }
 
-        if ($user->balance < 50) {
+        if ($request->option == '10min') {
+            $initialCharge = 35;
+        } else {
+            $initialCharge = 65;
+        }
+
+        if ($user->balance < $initialCharge) {
             return response()->json([
                 'message' => 'Insufficient balance to start ride.'
             ], 400);
@@ -51,7 +58,6 @@ class RideController extends Controller
 
 
         // Check if user has enough balance
-
         if ($request->option === '10min') {
             $user->decrement('balance', 35);
         } else {
@@ -79,6 +85,7 @@ class RideController extends Controller
     {
         $user = $request->user();
 
+
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
@@ -96,6 +103,7 @@ class RideController extends Controller
         $ride->update([
             'ended_at' => now(),
             'status' => 'ended',
+            'end_reason' => 'manual',
         ]);
 
         return response()->json([

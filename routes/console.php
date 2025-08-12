@@ -4,4 +4,4 @@ use App\Console\Commands\ProcessRideBilling;
 use Illuminate\Support\Facades\Schedule;
 
 
-Schedule::command(ProcessRideBilling::class)->everyTenSeconds();
+Schedule::command(ProcessRideBilling::class)->everyTwoSeconds();
