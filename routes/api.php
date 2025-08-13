@@ -24,3 +24,4 @@ Route::post('/register-user', [AuthController::class, 'registerUser']);
 Route::post('/login-via-email', [AuthController::class, 'loginViaEmail']);
 Route::post('/request-otp', [AuthController::class, 'generateOtp']);
 Route::post('/confirm-otp', [AuthController::class, 'confirmOtp']);
+Route::post('/check-user', [AuthController::class, 'checkIfUserExists']);

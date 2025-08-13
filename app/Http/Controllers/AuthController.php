@@ -159,4 +159,24 @@ class AuthController extends Controller
             'success' => true,
         ]);
     }
+
+    public function checkIfUserExists(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $exists = User::where('email', $request->email)->exists();
+
+        return response()->json([
+            'exist' => $exists
+        ]);
+    }
 }

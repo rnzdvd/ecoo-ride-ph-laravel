@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Ride;
 use App\Services\PushNotificationService;
+use App\Services\ScooterService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
@@ -17,11 +18,13 @@ class ProcessRideBilling extends Command implements ShouldQueue
 
 
     protected $pushNotificationService;
+    protected $scooterService;
 
-    public function __construct(PushNotificationService $pushNotificationService)
+    public function __construct(PushNotificationService $pushNotificationService, ScooterService $scooterService)
     {
         parent::__construct();
         $this->pushNotificationService = $pushNotificationService;
+        $this->scooterService = $scooterService;
     }
 
     public function handle()
@@ -63,6 +66,9 @@ class ProcessRideBilling extends Command implements ShouldQueue
                     $ride->status = 'ended';
                     $ride->end_reason = 'low_balance';
                     $ride->save();
+
+                    // lock scooter
+                    $this->scooterService->lockScooter($ride->scooter_id);
 
                     // push notification here 
                     if ($user->device_token) {

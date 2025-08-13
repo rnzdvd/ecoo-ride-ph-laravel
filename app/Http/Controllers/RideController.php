@@ -6,11 +6,12 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Ride;
 use App\Services\PushNotificationService;
+use App\Services\ScooterService;
 
 class RideController extends Controller
 {
 
-    public function startRide(Request $request)
+    public function startRide(Request $request, ScooterService $scooterService)
     {
         $initialCharge = 0;
         $user = $request->user();
@@ -56,32 +57,40 @@ class RideController extends Controller
             'option' => 'required|string',
         ]);
 
+        $unlockResponse = $scooterService->unlockScooter($request->scooter_id);
 
-        // Check if user has enough balance
-        if ($request->option === '10min') {
-            $user->decrement('balance', 35);
+        if ($unlockResponse['success'] !== true) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to unlock scooter'
+            ], 500);
         } else {
-            $user->decrement('balance', 65);
+            // Check if user has enough balance
+            if ($request->option === '10min') {
+                $user->decrement('balance', 35);
+            } else {
+                $user->decrement('balance', 65);
+            }
+
+            // Create ride record
+            $ride = Ride::create([
+                'user_id' => $user->id,
+                'scooter_id' => $request->scooter_id,
+                'started_at' => now(),
+                'last_billed_at' => now(),
+                'billed_intervals' => 1,
+                'status' => 'active',
+                'option' => $request->option
+            ]);
+
+            return response()->json([
+                'message' => 'Ride started successfully.',
+                'ride_id' => $ride->id
+            ]);
         }
-
-        // Create ride record
-        $ride = Ride::create([
-            'user_id' => $user->id,
-            'scooter_id' => $request->scooter_id,
-            'started_at' => now(),
-            'last_billed_at' => now(),
-            'billed_intervals' => 1,
-            'status' => 'active',
-            'option' => $request->option
-        ]);
-
-        return response()->json([
-            'message' => 'Ride started successfully.',
-            'ride_id' => $ride->id
-        ]);
     }
 
-    public function endRide(Request $request)
+    public function endRide(Request $request, ScooterService $scooterService)
     {
         $user = $request->user();
 
@@ -99,16 +108,26 @@ class RideController extends Controller
             return response()->json(['message' => 'No active ride found.'], 404);
         }
 
-        // Mark ride as ended
-        $ride->update([
-            'ended_at' => now(),
-            'status' => 'ended',
-            'end_reason' => 'manual',
-        ]);
+        $lockResponse = $scooterService->lockScooter($ride->scooter_id);
 
-        return response()->json([
-            'message' => 'Ride ended successfully.',
-            'ride_id' => $ride->id,
-        ]);
+        if ($lockResponse['success'] !== true) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to lock scooter'
+            ], 500);
+        } else {
+            // Mark ride as ended
+            $ride->update([
+                'ended_at' => now(),
+                'status' => 'ended',
+                'end_reason' => 'manual',
+            ]);
+
+
+            return response()->json([
+                'message' => 'Ride ended successfully.',
+                'ride_id' => $ride->id,
+            ]);
+        }
     }
 }
