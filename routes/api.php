@@ -13,8 +13,8 @@ Route::get('/user', function (Request $request) {
 Route::middleware(['auth.jwt'])->group(function () {
     Route::get('/online-scooters', [ScooterController::class, 'getOnlineScooters']);
     Route::get('/scooter-details', [ScooterController::class, 'getScooterById']);
-    Route::post('/lock-scooter', [ScooterController::class, 'lockScooter']);
-    Route::post('/unlock-scooter', [ScooterController::class, 'unlockScooter']);
+    // Route::post('/lock-scooter', [ScooterController::class, 'lockScooter']);
+    // Route::post('/unlock-scooter', [ScooterController::class, 'unlockScooter']);
     Route::post('/set-sent-location-frequency', [ScooterController::class, 'setSentLocationFrequency']);
     Route::post('/start-ride', [RideController::class, 'startRide']);
     Route::post('/end-ride', [RideController::class, 'endRide']);
