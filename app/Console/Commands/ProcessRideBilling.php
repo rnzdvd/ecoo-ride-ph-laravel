@@ -29,7 +29,6 @@ class ProcessRideBilling extends Command implements ShouldQueue
 
     public function handle()
     {
-
         $now = now();
         $rides = Ride::where('status', 'active')->get();
 
@@ -38,67 +37,86 @@ class ProcessRideBilling extends Command implements ShouldQueue
             return;
         }
 
-        $now = now();
-        $rides = Ride::where('status', 'active')->get();
-
         foreach ($rides as $ride) {
             $user = $ride->user;
 
             $startTime = $ride->started_at;
-            $lastBilledAt = $ride->last_billed_at ?? $startTime;
-            $diffSinceLastBill = Carbon::parse($lastBilledAt)->diffInSeconds($now);
+            $lastBilledAt = $ride->last_billed_at;
             $totalRideSeconds = Carbon::parse($startTime)->diffInSeconds($now);
 
-            // Initial covered time by option (10 or 20 minutes)
+            // Set initial free minutes
             $initialMinutes = $ride->option === '20min' ? 20 : 10;
             $initialSeconds = $initialMinutes * 60;
 
-            // Still inside initial covered time
+            // First bill delay after free period (in seconds)
+            $firstBillingDelay = 60; // 1 min after free time
+            $billingInterval = 660;  // 11 min in seconds
+
+            // Still inside free time → skip
             if ($totalRideSeconds <= $initialSeconds) {
                 continue;
             }
 
-            // Bill every 11 mins secs after covered time
-            if ($diffSinceLastBill >= 660) {
-                // If the user already has debt, end ride immediately
-                if ($user->debt > 0) {
-                    $ride->ended_at = $now;
-                    $ride->status = 'ended';
-                    $ride->end_reason = 'low_balance';
-                    $ride->save();
-
-                    // lock scooter
-                    $this->scooterService->lockScooter($ride->scooter_id);
-
-                    // push notification here 
-                    if ($user->device_token) {
-                        $this->pushNotificationService->sendPushNotification(
-                            $user->device_token,
-                            'Ride Ended',
-                            'Your ride has ended due to low wallet balance.',
-                            ['rideEnded' => true]
-                        );
-                    }
-                    continue; // move to the next ride
+            // Determine if it's first bill or subsequent bills
+            if (Carbon::parse($startTime)->eq(Carbon::parse($lastBilledAt))) {
+                // First bill after free time
+                if ($totalRideSeconds >= $initialSeconds + $firstBillingDelay) {
+                    $this->processBilling($ride, $user, $now);
                 }
+            } else {
+                // Time since last bill
+                $diffSinceLastBill = Carbon::parse($lastBilledAt)->diffInSeconds($now);
 
-                $charge = 35;
-
-                if ($user->balance >= $charge) {
-                    // normal charge
-                    $user->balance -= $charge;
-                } else {
-                    // not enough: apply debt for shortfall
-                    $shortfall = $charge - $user->balance;
-                    $user->debt += $shortfall;
-                    $user->balance = 0;
+                if ($diffSinceLastBill >= $billingInterval) {
+                    $this->processBilling($ride, $user, $now);
                 }
-
-                $user->save();
-                $ride->billed_intervals++;
-                $ride->last_billed_at = $now;
-                $ride->save();
             }
         }
+    }
+
+    /**
+     * Handle the actual billing logic
+     */
+    private function processBilling($ride, $user, $now)
+    {
+        // If the user already has debt → end ride immediately
+        if ($user->debt > 0) {
+            $ride->ended_at = $now;
+            $ride->status = 'ended';
+            $ride->end_reason = 'low_balance';
+            $ride->save();
+
+            // Lock scooter
+            $this->scooterService->lockScooter($ride->scooter_id);
+
+            // Push notification
+            if ($user->device_token) {
+                $this->pushNotificationService->sendPushNotification(
+                    $user->device_token,
+                    'Ride Ended',
+                    'Your ride has ended due to low wallet balance.',
+                    ['rideEnded' => true]
+                );
+            }
+            return;
+        }
+
+        // Charge amount
+        $charge = 35;
+
+        if ($user->balance >= $charge) {
+            $user->balance -= $charge;
+        } else {
+            $shortfall = $charge - $user->balance;
+            $user->debt += $shortfall;
+            $user->balance = 0;
+        }
+
+        $user->save();
+
+        // Update ride billing info
+        $ride->billed_intervals++;
+        $ride->last_billed_at = $now;
+        $ride->save();
     }
 }
