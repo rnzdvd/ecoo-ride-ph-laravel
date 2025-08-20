@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Ride;
 use App\Services\PushNotificationService;
 use App\Services\ScooterService;
+use Carbon\Carbon;
 
 class RideController extends Controller
 {
@@ -15,6 +16,10 @@ class RideController extends Controller
     {
         $initialCharge = 0;
         $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
 
         if (!$request->has('scooter_id')) {
             return response()->json([
@@ -65,12 +70,9 @@ class RideController extends Controller
                 'message' => 'Failed to unlock scooter'
             ], 500);
         } else {
-            // Check if user has enough balance
-            if ($request->option === '10min') {
-                $user->decrement('balance', 35);
-            } else {
-                $user->decrement('balance', 65);
-            }
+
+            $user->decrement('balance', $initialCharge);
+
 
             // Create ride record
             $ride = Ride::create([
@@ -80,12 +82,17 @@ class RideController extends Controller
                 'last_billed_at' => now(),
                 'billed_intervals' => 1,
                 'status' => 'active',
-                'option' => $request->option
+                'option' => $request->option,
+                'total_distance' => 0,
+                'total_charged' => $initialCharge,
             ]);
+
+            $rideArray = $ride->toArray();
+            $rideArray['total_duration'] = 0;
 
             return response()->json([
                 'message' => 'Ride started successfully.',
-                'ride_id' => $ride->id
+                'ride' => $rideArray
             ]);
         }
     }
@@ -94,18 +101,22 @@ class RideController extends Controller
     {
         $user = $request->user();
 
-
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        // Find the user’s active ride
-        $ride = Ride::where('user_id', $user->id)
-            ->where('status', 'active')
-            ->first();
+        if (!$request->has('id')) {
+            return response()->json([
+                'message' => 'id is required.',
+            ], 422);
+        }
+
+        $ride = Ride::find($request->id);
 
         if (!$ride) {
-            return response()->json(['message' => 'No active ride found.'], 404);
+            return response()->json([
+                'message' => 'Ride not found.',
+            ], 404);
         }
 
         $lockResponse = $scooterService->lockScooter($ride->scooter_id);
@@ -129,5 +140,37 @@ class RideController extends Controller
                 'ride_id' => $ride->id,
             ]);
         }
+    }
+
+    public function getRide(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        if (!$request->has('id')) {
+            return response()->json([
+                'message' => 'id is required.',
+            ], 422);
+        }
+
+
+        $ride = Ride::find($request->id);
+
+        if (!$ride) {
+            return response()->json([
+                'message' => 'Ride not found.',
+            ], 404);
+        }
+
+        $rideArray = $ride->toArray();
+        $rideArray['total_duration'] = Carbon::parse($ride->started_at)->diffInSeconds($ride->status === 'ended' ? $ride->ended_at : now());
+
+        return response()->json([
+            'message' => 'Ride found.',
+            'ride' => $rideArray
+        ]);
     }
 }

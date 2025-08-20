@@ -67,10 +67,15 @@ class AuthController extends Controller
         // Generate JWT token
         $token = JWTAuth::fromUser($user);
 
+        // Attach token to the user array
+        $userArray = $user->toArray();
+        $userArray['access_token'] = $token;
+
+        unset($userArray['device_token'], $userArray['balance'], $userArray['debt']);
+
         // Return user data with token
         return response()->json([
-            'user' => $user,
-            'token' => $token
+            'user' => $userArray,
         ], 200);
     }
 

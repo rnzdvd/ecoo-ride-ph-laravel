@@ -21,7 +21,9 @@ class Ride extends Model
         'last_billed_at',
         'billed_intervals',
         'end_reason',
-        'option'
+        'option',
+        'total_distance',
+        'total_charged',
     ];
 
     // Dates to be cast to Carbon instances

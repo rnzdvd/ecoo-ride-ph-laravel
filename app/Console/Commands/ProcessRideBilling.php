@@ -50,7 +50,7 @@ class ProcessRideBilling extends Command implements ShouldQueue
 
             // First bill delay after free period (in seconds)
             $firstBillingDelay = 60; // 1 min after free time
-            $billingInterval = 660;  // 11 min in seconds
+            $billingInterval = 600;  // 10 min in seconds
 
             // Still inside free time → skip
             if ($totalRideSeconds <= $initialSeconds) {
@@ -117,6 +117,7 @@ class ProcessRideBilling extends Command implements ShouldQueue
         // Update ride billing info
         $ride->billed_intervals++;
         $ride->last_billed_at = $now;
+        $ride->total_charged += $charge;
         $ride->save();
     }
 }
