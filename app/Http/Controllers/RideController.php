@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Ride;
-use App\Services\PushNotificationService;
 use App\Services\ScooterService;
 use Carbon\Carbon;
 
@@ -16,22 +15,10 @@ class RideController extends Controller
     {
         $initialCharge = 0;
         $user = $request->user();
-
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        if (!$request->has('scooter_id')) {
-            return response()->json([
-                'message' => 'scooter_id is required.',
-            ], 422);
-        }
-
-        if (!$request->has('option')) {
-            return response()->json([
-                'message' => 'option is required.',
-            ], 422);
-        }
+        $request->validate([
+            'scooter_id' => 'required',
+            'option'     => 'required',
+        ]);
 
         if ($request->option == '10min') {
             $initialCharge = 35;
@@ -57,10 +44,6 @@ class RideController extends Controller
             ], 400);
         }
 
-        $request->validate([
-            'scooter_id' => 'required|string',
-            'option' => 'required|string',
-        ]);
 
         $unlockResponse = $scooterService->unlockScooter($request->scooter_id);
 
@@ -99,17 +82,9 @@ class RideController extends Controller
 
     public function endRide(Request $request, ScooterService $scooterService)
     {
-        $user = $request->user();
-
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        if (!$request->has('id')) {
-            return response()->json([
-                'message' => 'id is required.',
-            ], 422);
-        }
+        $request->validate([
+            'id' => 'required',
+        ]);
 
         $ride = Ride::find($request->id);
 
@@ -134,7 +109,6 @@ class RideController extends Controller
                 'end_reason' => 'manual',
             ]);
 
-
             return response()->json([
                 'message' => 'Ride ended successfully.',
                 'ride_id' => $ride->id,
@@ -144,18 +118,9 @@ class RideController extends Controller
 
     public function getRide(Request $request)
     {
-        $user = $request->user();
-
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        if (!$request->has('id')) {
-            return response()->json([
-                'message' => 'id is required.',
-            ], 422);
-        }
-
+        $request->validate([
+            'id' => 'required',
+        ]);
 
         $ride = Ride::find($request->id);
 
@@ -172,5 +137,17 @@ class RideController extends Controller
             'message' => 'Ride found.',
             'ride' => $rideArray
         ]);
+    }
+
+    public function getRideHistory(Request $request)
+    {
+        $user = $request->user();
+
+        $rides =  $user
+            ->rides()
+            ->where('status', 'ended')   // or ->whereNotNull('ended_at')
+            ->get();
+
+        return response()->json($rides);
     }
 }

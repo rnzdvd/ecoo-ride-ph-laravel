@@ -11,12 +11,11 @@ class JwtMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$token = $request->bearerToken()) {
+        if (!$request->bearerToken()) {
             return response()->json(['error' => 'Token not provided'], 401);
         }
-
         try {
-            if (! Auth::guard('api')->check()) {
+            if (!Auth::guard('api')->check()) {
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
         } catch (\Exception $e) {

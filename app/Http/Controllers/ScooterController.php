@@ -31,11 +31,12 @@ class ScooterController extends Controller
 
     public function getScooterById(Request $request): JsonResponse
     {
-        $id = $request->query('id');
 
-        if (!$id) {
-            return response()->json(['error' => 'Missing scooter ID'], 400);
-        }
+        $request->validate([
+            'id' => 'required',
+        ]);
+
+        $id = $request->query('id');
 
         $client = new Client();
 
@@ -56,11 +57,12 @@ class ScooterController extends Controller
 
     public function lockScooter(Request $request): JsonResponse
     {
-        $id = $request->query('id');
 
-        if (!$id) {
-            return response()->json(['error' => 'Missing scooter ID'], 400);
-        }
+        $request->validate([
+            'id' => 'required',
+        ]);
+
+        $id = $request->query('id');
 
         $client = new Client();
 
@@ -81,11 +83,11 @@ class ScooterController extends Controller
 
     public function unlockScooter(Request $request): JsonResponse
     {
-        $id = $request->query('id');
+        $request->validate([
+            'id' => 'required',
+        ]);
 
-        if (!$id) {
-            return response()->json(['error' => 'Missing scooter ID'], 400);
-        }
+        $id = $request->query('id');
 
         $client = new Client();
 
@@ -106,16 +108,14 @@ class ScooterController extends Controller
 
     public function setSentLocationFrequency(Request $request): JsonResponse
     {
+        $request->validate([
+            'id' => 'required',
+            'frequency' => 'required|integer|min:1',
+        ]);
+
+
         $id = $request->query('id');
         $frequency = $request->query('frequency');
-
-        if (!$id) {
-            return response()->json(['error' => 'Missing scooter ID'], 400);
-        }
-
-        if (!$frequency) {
-            return response()->json(['error' => 'Missing frequency'], 400);
-        }
 
         $client = new Client();
 

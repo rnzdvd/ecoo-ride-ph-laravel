@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rides', function (Blueprint $table) {
-            $table->string('end_reason')->nullable(); // replace 'some_column' with the column after which you want this
-            $table->string('park_photo')->nullable(); // assuming it's a string URL or path
+            $table->string('end_reason')->nullable();
+            $table->string('park_photo')->nullable();
         });
     }
 

@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Exception;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Validator;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
@@ -40,18 +41,12 @@ class AuthController extends Controller
 
     public function loginViaEmail(Request $request)
     {
-        // Validate email
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'device_token' => 'required|string'
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors'  => $validator->errors()
-            ], 422);
-        }
+        $request->validate([
+            'email' => 'required',
+            'device_token' => 'required'
+
+        ]);
 
         // Find user by email
         $user = User::where('email', $request->email)->first();
@@ -82,16 +77,9 @@ class AuthController extends Controller
 
     public function generateOtp(Request $request, OtpEmailService $otpEmailService)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
+        $request->validate([
+            'email' => 'required',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors'  => $validator->errors()
-            ], 422);
-        }
 
         // Delete old OTPs for this email
         Otp::where('email', $request->email)->delete();
@@ -184,5 +172,17 @@ class AuthController extends Controller
         return response()->json([
             'exist' => $exists
         ]);
+    }
+
+    public function refresh()
+    {
+        try {
+            $newToken = JWTAuth::refresh(JWTAuth::getToken());
+            return response()->json([
+                'access_token' => $newToken,
+            ]);
+        } catch (JWTException $e) {
+            return response()->json(['error' => 'Token refresh failed'], 401);
+        }
     }
 }

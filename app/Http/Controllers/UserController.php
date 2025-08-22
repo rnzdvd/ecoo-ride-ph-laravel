@@ -12,10 +12,6 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
         return response()->json([
             'debt' => $user->debt,
             'balance' => $user->balance
@@ -26,22 +22,13 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'channel_code' => 'required|string'
+        ]);
 
         $amount = $request->input('amount');
         $channelCode = $request->input('channel_code');
-
-
-        if ($amount <= 0) {
-            return response()->json(['message' => 'Invalid amount'], 400);
-        }
-
-        if (!$channelCode) {
-            return response()->json(['message' => 'Channel code is required'], 422);
-        }
-
         $referenceId = 'topup_user_' . $user->id . '_' . time();
 
         $payload = [

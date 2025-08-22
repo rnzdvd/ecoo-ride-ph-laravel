@@ -12,10 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('rides', function (Blueprint $table) {
-            Schema::table('rides', function (Blueprint $table) {
-                $table->decimal('total_distance', 10, 2)->default(0)->after('status'); // in km
-                $table->decimal('total_charged', 10, 2)->default(0)->after('total_time'); // in PHP
-            });
+            $table->decimal('total_distance', 10, 2)->default(0)->after('status'); // in km
+            $table->decimal('total_charged', 10, 2)->default(0)->after('total_distance'); // in PHP
         });
     }
 
