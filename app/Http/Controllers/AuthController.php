@@ -75,6 +75,17 @@ class AuthController extends Controller
     }
 
 
+    public function logout()
+    {
+        try {
+            JWTAuth::invalidate(JWTAuth::getToken());
+            return response()->json(['message' => 'Successfully logged out']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to logout, token invalid'], 500);
+        }
+    }
+
+
     public function generateOtp(Request $request, OtpEmailService $otpEmailService)
     {
         $request->validate([
@@ -174,7 +185,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function refresh()
+    public function refreshToken()
     {
         try {
             $newToken = JWTAuth::refresh(JWTAuth::getToken());

@@ -21,6 +21,7 @@ Route::middleware(['auth.jwt'])->group(function () {
     Route::get('/get-ride-history', [RideController::class, 'getRideHistory']);
     Route::get('/get-user-balance', [UserController::class, 'getUserBalance']);
     Route::post('/request-payment', [UserController::class, 'requestPayment']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 });
 
 Route::post('/set-sent-location-frequency', [ScooterController::class, 'setSentLocationFrequency']);
@@ -32,7 +33,7 @@ Route::post('/login-via-email', [AuthController::class, 'loginViaEmail']);
 Route::post('/request-otp', [AuthController::class, 'generateOtp']);
 Route::post('/confirm-otp', [AuthController::class, 'confirmOtp']);
 Route::post('/check-user', [AuthController::class, 'checkIfUserExists']);
-Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+Route::post('/auth/refresh', [AuthController::class, 'refreshToken']);
 
 
 Route::post('/webhook/xendit/payment', [XenditWebhookController::class, 'handle']);
