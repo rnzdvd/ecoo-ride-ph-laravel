@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -18,44 +16,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function requestPayment(Request $request)
+    public function getUserCards(Request $request)
     {
         $user = $request->user();
-
-        $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'channel_code' => 'required|string'
-        ]);
-
-        $amount = $request->input('amount');
-        $channelCode = $request->input('channel_code');
-        $referenceId = 'topup_user_' . $user->id . '_' . time();
-
-        $payload = [
-            "reference_id" => $referenceId,
-            "type" => "PAY",
-            "country" => "PH",
-            "currency" => "PHP",
-            "request_amount" => intval($amount),
-            "capture_method" => "AUTOMATIC",
-            "channel_code" => $channelCode,
-            "channel_properties" => [
-                "failure_return_url" => "ecooridephapp://ecoo.ride-ph.com/fail",
-                "success_return_url" => "ecooridephapp://ecoo.ride-ph.com/success",
-                "cancel_return_url" => "ecooridephapp://ecoo.ride-ph.com/cancel"
-            ],
-            "description" => "Top Up Wallet"
-        ];
-
-        $response = Http::withBasicAuth(env('XENDIT_SECRET_KEY'), '')
-            ->withHeader('api-version', '2024-11-11')
-            ->post('https://api.xendit.co/v3/payment_requests', $payload);
-
-        if ($response->successful()) {
-            return $response->json();
-        } else {
-            Log::error('Xendit payment request failed:', ['response' => $response->body()]);
-            return response()->json(['message' => $response->body()], 200);
-        }
+        return response()->json($user->cards);
     }
 }
