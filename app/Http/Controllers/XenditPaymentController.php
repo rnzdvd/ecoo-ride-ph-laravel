@@ -22,22 +22,49 @@ class XenditPaymentController extends Controller
         $amount = $request->input('amount');
         $channelCode = $request->input('channel_code');
         $referenceId = 'topup_user_' . $user->id . '_' . time();
+        $payload = [];
 
-        $payload = [
-            "reference_id" => $referenceId,
-            "type" => "PAY",
-            "country" => "PH",
-            "currency" => "PHP",
-            "request_amount" => intval($amount),
-            "capture_method" => "AUTOMATIC",
-            "channel_code" => $channelCode,
-            "channel_properties" => [
-                "failure_return_url" => "ecooridephapp://ecoo.ride-ph.com/fail",
-                "success_return_url" => "ecooridephapp://ecoo.ride-ph.com/success",
-                "cancel_return_url" => "ecooridephapp://ecoo.ride-ph.com/cancel"
-            ],
-            "description" => "Top Up Wallet"
-        ];
+        if ($channelCode == 'CARDS') {
+
+            if (!$request->has('payment_token_id')) {
+                return response()->json(['message' => 'channel code is CARDS, payment_token_id is required'], 400);
+            }
+            $paymentTokenId = $request->input('payment_token_id');
+
+            $payload = [
+                'reference_id' => $referenceId,
+                'payment_token_id' => $paymentTokenId,
+                'type' => 'PAY',
+                'country' => 'PH',
+                'currency' => 'PHP',
+                'request_amount' => intval($amount),
+                'capture_method' => 'AUTOMATIC',
+                'channel_properties' => [
+                    'skip_three_ds' => false,
+                    'card_on_file_type' => 'CUSTOMER_UNSCHEDULED',
+                    "failure_return_url" => "https://ecoo.ride-ph.com/fail",
+                    "success_return_url" => "https://ecoo.ride-ph.com/success",
+                    'statement_descriptor' => 'Top Up Wallet',
+                ],
+                "description" => "Top Up Wallet"
+            ];
+        } else {
+            $payload = [
+                "reference_id" => $referenceId,
+                "type" => "PAY",
+                "country" => "PH",
+                "currency" => "PHP",
+                "request_amount" => intval($amount),
+                "capture_method" => "AUTOMATIC",
+                "channel_code" => $channelCode,
+                "channel_properties" => [
+                    "failure_return_url" => "https://ecoo.ride-ph.com/fail",
+                    "success_return_url" => "https://ecoo.ride-ph.com/success",
+                    "cancel_return_url" => "https://ecoo.ride-ph.com/cancel"
+                ],
+                "description" => "Top Up Wallet"
+            ];
+        }
 
         $response = Http::withBasicAuth(env('XENDIT_SECRET_KEY'), '')
             ->withHeader('api-version', '2024-11-11')

@@ -33,8 +33,9 @@ class XenditWebhookController extends Controller
             if ($channelCode === 'GCASH') {
                 $netSale = $amount - $amount * 0.023; // 2.3% fee
             } else if ($channelCode === 'PAYMAYA') {
-                $netSale = $amount - $amount * 0.02; // 2% fee
-            } else if ($channelCode === 'CREDIT_CARD') {
+                $netSale = $amount - $amount * 0.018; // 1.8% fee
+            } else {
+                $netSale = $amount - (($amount * 0.032) + 10);
             }
 
             if ($status === 'SUCCEEDED') {
