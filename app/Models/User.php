@@ -15,7 +15,6 @@ class User extends Authenticatable implements JWTSubject
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users';
-    public $timestamps = false;
 
     protected $fillable = [
         'full_name',
@@ -23,6 +22,7 @@ class User extends Authenticatable implements JWTSubject
         'phone_number',
         'balance',
     ];
+
 
     // Required methods for JWT
     public function getJWTIdentifier()
