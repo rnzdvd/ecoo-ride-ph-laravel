@@ -38,9 +38,7 @@ class SalesList extends TableWidget
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    //
-                ]),
+                BulkActionGroup::make([]),
             ]);
     }
 }
