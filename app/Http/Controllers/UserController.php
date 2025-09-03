@@ -21,4 +21,14 @@ class UserController extends Controller
         $user = $request->user();
         return response()->json($user->cards);
     }
+
+    public function getUserStats(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'total_distance' => $user->total_distance,
+            'total_rides' => $user->total_rides,
+        ]);
+    }
 }

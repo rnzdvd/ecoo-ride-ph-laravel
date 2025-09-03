@@ -24,6 +24,8 @@ class Ride extends Model
         'option',
         'total_distance',
         'total_charged',
+        'curr_lat',
+        'curr_lng',
     ];
 
     // Dates to be cast to Carbon instances

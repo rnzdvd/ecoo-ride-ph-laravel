@@ -18,6 +18,8 @@ class RideController extends Controller
         $request->validate([
             'scooter_id' => 'required',
             'option'     => 'required',
+            'curr_lat'   => 'required',
+            'curr_lng'   => 'required',
         ]);
 
         if ($request->option == '10min') {
@@ -56,7 +58,6 @@ class RideController extends Controller
 
             $user->decrement('balance', $initialCharge);
 
-
             // Create ride record
             $ride = Ride::create([
                 'user_id' => $user->id,
@@ -68,10 +69,15 @@ class RideController extends Controller
                 'option' => $request->option,
                 'total_distance' => 0,
                 'total_charged' => $initialCharge,
+                'curr_lat' => $request->curr_lat,
+                'curr_lng' => $request->curr_lng,
             ]);
 
             $rideArray = $ride->toArray();
             $rideArray['total_duration'] = 0;
+
+            $user->total_rides += 1;
+            $user->save();
 
             return response()->json([
                 'message' => 'Ride started successfully.',
@@ -102,6 +108,9 @@ class RideController extends Controller
                 'message' => 'Failed to lock scooter'
             ], 500);
         } else {
+            $user = $request->user();
+            $user->total_distance += $ride->total_distance;
+            $user->save();
             // Mark ride as ended
             $ride->update([
                 'ended_at' => now(),
@@ -139,13 +148,33 @@ class RideController extends Controller
         ]);
     }
 
+    public function getTotalDistanceById(Request $request)
+    {
+        $request->validate([
+            'id' => 'required',
+        ]);
+
+        $id = $request->query('id');
+        $ride = Ride::find($id);
+
+        if (!$ride) {
+            return response()->json([
+                'message' => 'Ride not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'total_distance' => $ride->total_distance
+        ]);
+    }
+
     public function getRideHistory(Request $request)
     {
         $user = $request->user();
 
-        $rides =  $user
+        $rides = $user
             ->rides()
-            ->where('status', 'ended')   // or ->whereNotNull('ended_at')
+            ->where('status', 'ended')
             ->get();
 
         return response()->json($rides);

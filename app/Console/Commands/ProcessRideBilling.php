@@ -8,7 +8,6 @@ use App\Services\PushNotificationService;
 use App\Services\ScooterService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Support\Facades\Log;
 
 
 class ProcessRideBilling extends Command implements ShouldQueue
@@ -33,7 +32,6 @@ class ProcessRideBilling extends Command implements ShouldQueue
         $rides = Ride::where('status', 'active')->get();
 
         if ($rides->isEmpty()) {
-            Log::info("No active rides at " . $now);
             return;
         }
 
@@ -85,6 +83,9 @@ class ProcessRideBilling extends Command implements ShouldQueue
             $ride->status = 'ended';
             $ride->end_reason = 'low_balance';
             $ride->save();
+
+            $user->total_distance += $ride->total_distance;
+            $user->save();
 
             // Lock scooter
             $this->scooterService->lockScooter($ride->scooter_id);

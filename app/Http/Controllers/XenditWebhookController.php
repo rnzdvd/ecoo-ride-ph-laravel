@@ -14,7 +14,6 @@ class XenditWebhookController extends Controller
     public function handle(Request $request, PushNotificationService $pushNotificationService)
     {
         $payload = $request->all();
-        Log::info('Xendit Webhook Payload: ', $payload);
         $event = $payload['event'];
 
         if ($event === 'payment.capture') {

@@ -20,7 +20,6 @@ class ScooterService
         if (!$id) {
             throw new \InvalidArgumentException('Missing scooter ID');
         }
-
         try {
             $response = $this->http->post("http://178.128.24.61:30001/api/scooters/lock/{$id}");
             return json_decode($response->getBody(), true);
@@ -34,7 +33,6 @@ class ScooterService
         if (!$id) {
             throw new \InvalidArgumentException('Missing scooter ID');
         }
-
         try {
             $response = $this->http->post("http://178.128.24.61:30001/api/scooters/unlock/{$id}");
             return json_decode($response->getBody(), true);
